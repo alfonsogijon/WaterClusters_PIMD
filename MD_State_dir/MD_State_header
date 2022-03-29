@@ -1,0 +1,296 @@
+!*****************************************************************************
+module MD_State_module
+!*****************************************************************************
+!
+!  Project: MolecularDynamics
+!
+!  Created on: Mon  4 Jun 10:42:01 2018  by Eduardo R. Hernandez
+!
+!  Last Modified: Fri 18 Oct 12:47:40 2019
+!
+! ---
+! Copyright (C) 2018       Eduardo R. Hernandez - ICMM
+!  This file is distributed under the terms of the
+!  GNU General Public License: see COPYING in the top directory
+!  or http://www.gnu.org/copyleft/gpl.txt .
+! ---
+!
+! This module defines the State derived type. This type contains information
+! about the atomic positions, velocities (momenta), cell, extended variables
+! (thermostat and/or barostat) etc. In short, it contains all the information
+! needed to characterise the state of a simulated system, bundled into one 
+! object. All the data in State is private, and must be accessed through 
+! the corresponding get() and put() routines, also provided here. 
+!
+! Internally, positions, momenta and forces are usually stored most commonly 
+! in Cartesian representation; however, some MD integration algorithms, 
+! in particular those that involve constant-pressure, require them in a lattice
+! representation. It is therefore possible to transform from one representation
+! to the other; the transformation is different and independent for each type
+! of variable. A logical flag is used to keep track of the current representation
+! of each variable.
+!
+! For simulations involving several replicas of the system, a derived type is
+! defined, StateChain, containing an array of States among with the rest of
+! information describing the state of the system.
+! 
+!*****************************************************************************
+!  modules used
+
+   use MD_precision_module
+   use MD_constants_module
+
+!*****************************************************************************
+!  No implicits please!
+   
+   implicit none
+
+!*****************************************************************************
+!  parameter definitions (public)
+
+! constants defining numerical types
+
+   !integer, parameter :: i8b = selected_int_kind(18)
+   !integer, parameter :: sp = selected_real_kind(6,30)
+   !integer, parameter :: dp = selected_real_kind(14,100)
+
+! numerical constants
+
+   !real (dp), parameter :: zero = 0.0_dp
+   !real (dp), parameter :: one = 1.0_dp
+   !real (dp), parameter :: two = 2.0_dp
+   !real (dp), parameter :: three = 3.0_dp
+   !real (dp), parameter :: four = 4.0_dp
+   !real (dp), parameter :: five = 5.0_dp
+   !real (dp), parameter :: six = 6.0_dp
+   !real (dp), parameter :: seven = 7.0_dp
+   !real (dp), parameter :: eight = 8.0_dp
+   !real (dp), parameter :: nine = 9.0_dp
+   !real (dp), parameter :: ten = 10.0_dp
+   !real (dp), parameter :: eleven = 11.0_dp
+   !real (dp), parameter :: twelve = 12.0_dp
+   !real (dp), parameter :: half = 0.5_dp
+   !real (dp), parameter :: sixth = 1.0_dp / 6.0_dp
+   
+   !real (dp), parameter :: verysmall = 1.0e-7_dp
+   !real (dp), parameter :: tiny = 1.0e-16_dp
+
+! pi to 50 digits
+   !real (dp), parameter :: pi = 3.14159265358979323846264338327950288419716939937510_dp
+   !real (dp), parameter :: deg = pi / 180.0_dp
+
+! unit conversion
+
+   !real (dp), parameter :: Bohr = 1.0_dp
+   !real (dp), parameter :: Angstrom = Bohr / 0.529177_dp
+   !real (dp), parameter :: Hartree = 1.0_dp
+   !real (dp), parameter :: Rydberg = Hartree / two
+   !real (dp), parameter :: eV = Hartree / 13.60580_dp / two
+   !real (dp), parameter :: kcalmol = Hartree / 627.509474_dp
+   !real (dp), parameter :: kJoulemol = Hartree / 2625.49963865
+   !real (dp), parameter :: rad_to_deg = 180.0_dp / pi
+   !real (dp), parameter :: au_to_joules = 4.3598e-18_dp
+   !real (dp), parameter :: GPa_to_au = 3.398923e-5_dp
+   !real (dp), parameter :: s_to_atu = 2.418884326e-17_dp 
+   !real (dp), parameter :: kBar   = one / 1.47108e5_dp
+   !real (dp), parameter :: GPa    = kBar * ten
+   !real (dp), parameter :: Kelvin = eV / 11604.45_dp
+
+! physical constants
+
+   !real (dp), parameter :: adu = 0.52917715e-10_dp
+   !real (dp), parameter :: amu = 9.109535e-31_dp
+   !real (dp), parameter :: boltzmann_k = 3.1666590210560118e-06_dp  ! in Hartree K^-1
+
+!*****************************************************************************
+!  derived type definitions 
+
+      type barostat_type
+       
+         real (dp) :: mass
+         ! there is no position; that role is played by the cell metricTensor
+         real (dp), dimension (3,3) :: momentum
+
+      end type barostat_type
+
+      type energy_type
+
+         real (dp) :: kinetic                      ! thermostat is used
+         real (dp) :: potential
+         real (dp) :: thermostat
+         real (dp) :: barostat
+         real (dp) :: constantOfMotion             ! may be different from total energy
+
+      end type energy_type
+
+      type energyOrigin_type
+
+           logical :: set                          ! true if origin is set
+           real (dp) :: E
+
+      end type energyOrigin_type
+
+      type lattice_type
+
+         real (dp), dimension (3) :: a  ! lattice vectors
+         real (dp), dimension (3) :: b
+         real (dp), dimension (3) :: c
+         real (dp) :: a_modulus         ! their moduli
+         real (dp) :: b_modulus
+         real (dp) :: c_modulus
+         real (dp) :: alpha             ! their angles
+         real (dp) :: beta
+         real (dp) :: gamma
+         real (dp) :: volume            ! cell volume
+         real (dp), dimension (3,3) :: metricTensor
+                                        
+      end type lattice_type
+
+      type representation_type
+
+         logical :: position     ! .true. if Cartesian rep; .false. otherwise
+         logical :: momentum
+         logical :: force
+
+      end type representation_type
+
+      type stress_type
+
+         logical :: calculated
+         real (dp) :: pressure   ! the internal instantaneous pressure 
+         real (dp), dimension(3,3) :: cartesian
+         real (dp), dimension(3,3) :: lattice 
+
+      end type stress_type
+
+      type thermostat_type
+
+         real (dp) :: mass
+         real (dp) :: position
+         real (dp) :: momentum 
+
+         ! the following are parameters used only 
+         ! in the particular case of Recursive-Nosé-Poincaré chains
+
+         real (dp) :: a
+         real (dp) :: C
+
+      end type thermostat_type
+
+      type state_type
+
+         type ( representation_type ), private :: representation
+
+         ! atom-related variables
+
+         integer, private :: nAtoms
+         integer, private :: nDegreesOfFreedom
+         real (dp), private, pointer, dimension (:,:) :: position
+         real (dp), private, pointer, dimension (:,:) :: force
+         real (dp), private, pointer, dimension (:,:) :: momentum
+         real (dp), private, pointer, dimension (:) :: mass
+
+         ! cell-related variables
+         type ( lattice_type ), private :: Cell
+         type ( lattice_type ), private :: reciprocalCell
+         type ( stress_type ), private :: stress  ! this is the potential stress only
+         type ( stress_type ), private :: totalInternalStress ! includes kinetic contribution
+
+         ! extended-system variables, if any
+         integer :: nThermostats
+         type ( thermostat_type ), private, pointer, dimension (:) :: thermostat
+         type ( barostat_type ), private :: barostat
+
+         ! energy of the system
+
+         type ( energy_type ), private :: energy
+
+         type ( energyOrigin_type ), private :: H0  ! constant, only used if Nose thermostat(s) used
+
+      end type state_type
+
+      type StateChain_type
+
+         !type ( representation_type ), private :: representation
+
+	 integer, private :: nReplicas
+	 integer, private :: nDegreesOfFreedom
+	 integer, private :: nAtoms ! atoms per replica
+	 real(dp), private, pointer, dimension(:) :: mass ! per replica				
+
+	 ! array containing states
+	 type ( state_type ), private, pointer, dimension (:) :: replica
+
+         ! extended-system variables
+         integer :: nThermostats
+         type ( thermostat_type ), private, pointer, dimension (:) :: thermostat
+
+         ! energy of classical system (cyclic chain of states)
+         type ( energy_type ), private :: energy
+         type ( energyOrigin_type ), private :: H0  ! constant, only used if Nose thermostat(s) used
+
+         ! energy of quantum system 
+         real(dp), private :: qKineticEnergy
+	 real(dp), private :: qKineticEnergy_v2	
+         real(dp), private :: qPotentialEnergy
+
+      end type StateChain_type                               
+
+!*****************************************************************************
+!  private module variables
+
+      ! constats parameters for the random number generator
+
+      real(dp), private, parameter :: vmodul=140737488355328.0_dp
+      real(dp), private, parameter :: vmodul1=8388608.0_dp
+      real(dp), private, parameter :: vmultp=16805.0_dp
+
+      ! auxiliar variables to generate random numbers
+      
+      integer, private :: jang, kang
+      integer, private :: iset
+      real(dp), private :: gset     
+      real(dp), private, dimension(55) :: y
+
+      logical, private, parameter :: debug = .false.
+      !logical, private, parameter :: debug = .true.
+      logical, private :: PBC ! periodic boundary conditions (true if)
+
+      real (dp) :: energyConversionFactor
+      real (dp), private :: forceConversionFactor
+      real (dp), private :: lengthConversionFactor
+      real (dp), private :: massConversionFactor
+      real (dp) :: pressureConversionFactor   ! this converts to/from internal to kB/GPa
+      real (dp) :: timeConversionFactor
+      real (dp), private :: velConversionFactor
+      real (dp), private :: volumeConversionFactor
+
+!*****************************************************************************
+!  private module subroutines
+  
+      private calculateInternalPressure
+      private calculateKineticEnergy
+      private generateMomenta
+      private setReciprocalCell
+      private transformCoordinates2Cartesian
+      private transformCoordinates2Lattice
+      private transformForces2Cartesian
+      private transformForces2Lattice
+      private transformMomenta2Cartesian
+      private transformMomenta2Lattice
+      private randini
+      private randu
+      private gasdev      
+
+contains
+
+!*****************************************************************************
+!*****************************************************************************
+!*****************************************************************************
+!
+!  PUBLIC module subroutines
+!
+!*****************************************************************************
+!*****************************************************************************
+!*****************************************************************************
+

@@ -1,0 +1,22 @@
+# logfile
+'logfile.dat'
+# Number of timesteps of equilibration and production
+100 100
+# Number of outputs in logfile
+100
+# Frequency to compute spatial density, number of bins and rmax (in Angstroms)
+5 400 40.0
+# Restart label (1 if restart, 0 if not)
+0
+# Number of water molecules of the cluster
+100
+# Number of replicas
+120
+# Friction parameter of Langevin dynamics (NVE dynamics if zero)
+0.001
+# Target temperature (K)
+50.0
+# Timestep (fs)
+1.0
+# xyz file
+'./cluster.xyz'

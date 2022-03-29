@@ -1,0 +1,159 @@
+!*****************************************************************************
+module MolecularDynamics
+!*****************************************************************************
+!
+!  Project: MolecularDynamics
+!
+!  Created on: Thu  8 Mar 10:42:01 2018  by Eduardo R. Hernandez
+!
+!  Last Modified: Tue 15 Oct 16:38:47 2019
+!
+! ---
+! Copyright (C) 2018       Eduardo R. Hernandez - ICMM
+!  This file is distributed under the terms of the
+!  GNU General Public License: see COPYING in the top directory
+!  or http://www.gnu.org/copyleft/gpl.txt .
+! ---
+! 
+! This module implements several MD algorithms, ranging from conventional 
+! microcanonical MD using the Velocity-Verlet algorithm, NVT or NPT 
+! variable-cell dynamics.
+! 
+!      1) It provides routines to transform to/from the units used by the
+!         external program and those used internally by the molecular_dynamics
+!         module; MD_stepA() first calls units2internal() provided here, to 
+!         transform to internal units, while MD_stepB() calls units2external()
+!         just before returnint, to transform coordinates, velocities etc to
+!         the units used by the external code.
+!
+!      2) It defines a series of derived types to specify the current system
+!         configuration that are used in the molecular_dynamics module. In
+!         particular it defines a type lattice, describing the simulation cell,
+!         a type stress, required for constant-pressure/variable-cell dynamics,
+!         and a state type, containing coordinates, forces, momenta, cell 
+!         (including reciprocal cell), and stress (both internal and external)
+!        
+!      3) It provides routines for transforming between Cartesian and lattice
+!         (relative to the cell) representation for coordinates, momenta and 
+!         forces.
+!
+!*****************************************************************************
+!  modules used
+
+   use MD_State_module
+
+!*****************************************************************************
+!  No implicits please!
+   
+   implicit none
+
+!*****************************************************************************
+! parameter definitions (public)
+
+!*****************************************************************************
+!  derived type definitions 
+
+      type simulation_type
+
+         logical :: PBC                   ! periodic boundary conditions (true if)
+         logical :: isoshape              ! if true fix the cell shape in constant-pressure simulation
+         logical :: start                 ! .true. if first run, .false. otherwise
+
+                                          ! 0 -> NVE dynamics (velocityVerlet)
+         integer :: dyntype               ! 1 -> NVT dynamics (Nose-Poincare)
+                                          ! 2 -> NPH dynamics (Souza-Martins)
+         real(dp) :: temperature          ! 3 -> NPT dynamics (Hernandez)
+         real(dp) :: pressure                    
+
+         type ( stress_type ) :: stress   ! non-hydrostatic part
+                                          ! the hydrostatic is in pressure
+      end type simulation_type                          
+
+!*****************************************************************************
+!  private module variables
+
+      ! constats parameters for the random number generator
+
+      real(dp), private, parameter :: vmodul=140737488355328.0_dp
+      real(dp), private, parameter :: vmodul1=8388608.0_dp
+      real(dp), private, parameter :: vmultp=16805.0_dp
+
+      ! auxiliar variables to generate random numbers
+      
+      integer, private :: jang, kang
+      integer, private :: iset
+      real(dp), private :: gset     
+      real(dp), private, dimension(55) :: y   		    
+
+      logical, private, parameter :: debug = .false.
+      !logical, private, parameter :: debug = .true.
+
+      integer, private :: nAtoms
+      integer, private :: nDegreesOfFreedom
+      integer, private :: nThermostats
+      integer, private :: nReplicas
+
+      real (dp), private :: delta_t
+      real (dp), private :: half_delta_t
+      real (dp), private :: delta_t2	
+
+      real (dp), private :: H0 ! only used by Nose-Poincare thermostat(s)
+     
+      real (dp), private, dimension (3,3) :: kinetic_stress
+      real (dp), private, dimension (3,3) :: shell_stress
+
+      type ( energy_type ), private :: energy
+
+      type ( simulation_type ), private :: simulation
+
+      real (dp), private, allocatable, dimension (:,:) :: force
+      real (dp), private, allocatable, dimension (:,:) :: momentum
+      real (dp), private, allocatable, dimension (:,:) :: position
+      real (dp), private, allocatable, dimension (:) :: mass
+
+      ! arrays for multi-replica simulations
+      type( state_type), private, allocatable, dimension(:) :: state_replica
+      real (dp), private, allocatable, dimension (:,:,:) :: force_chain
+      real (dp), private, allocatable, dimension (:,:,:) :: momentum_chain
+      real (dp), private, allocatable, dimension (:,:,:) :: position_chain
+
+      type ( stress_type ), private :: stress  ! this is the total internal stress, not to be confused with external stress
+
+      type ( lattice_type ), private :: cell
+      type ( lattice_type ), private :: reciprocalCell
+
+      type ( thermostat_type ), private, allocatable, dimension (:) :: thermostat
+      type ( barostat_type ), private :: barostat
+
+      ! constants of Bussi-Parrinello thermostat
+      real (dp), private :: gamma
+      real (dp), private :: c1
+      real (dp), private, allocatable, dimension(:) :: c2
+
+!*****************************************************************************
+!  private module subroutines
+  
+      private calculateThermostatEnergy
+      private velocityVerlet_A
+      private velocityVerlet_B
+      private NosePoincareChain_A
+      private NosePoincareChain_B
+      private NPSM_A
+      private NPSM_B
+      private UpdateCell
+      private randini
+      private randu
+      private gasdev
+
+contains
+
+!*****************************************************************************
+!*****************************************************************************
+!*****************************************************************************
+!
+!  PUBLIC module subroutines
+!
+!*****************************************************************************
+!*****************************************************************************
+!*****************************************************************************
+
