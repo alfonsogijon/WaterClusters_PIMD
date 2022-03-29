@@ -1,5 +1,5 @@
 # WaterClusters_PIMD
-This code is designed to perform Path Integral Molecular Dynamics (PIMD) simulations at constant temperature of finite water clusters. For the water interactions, subroutines implementing the flexibles SPC/F and qTIP4P/F potentials are included. 
+This code is designed to perform both classical (MD) or Path Integral Molecular Dynamics (PIMD) simulations at constant temperature of finite water clusters. For the water interactions, subroutines implementing the flexibles SPC/F and qTIP4P/F potentials are included. 
 
 The structure of the program in Fortran modules was designed and implemented by Eduardo Hernández, in a similar way to the Trocadero software (R. Rurali, E. Hernández, Computational Materials Science 28 (2003) 85–106). The main program and the subroutines needed to implement the path integral method were written by Alfonso Gijón.
 
