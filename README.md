@@ -6,7 +6,7 @@ The structure of the program in Fortran modules was designed and implemented by 
 The code is not currently maintained, but any question can be asked to Alfonso Gijón (alfonso.gijon2@gmail.com). If you download and use the code for your work, please cite our [paper](https://doi.org/10.1039/D2CP01088G) 
 ---
 
-```
+```latex
 @Article{D2CP01088G,
 author ="Gijón, A. and Hernández, E. R.",
 title  ="Quantum simulations of neutral water clusters and singly-charged water cluster anions",
