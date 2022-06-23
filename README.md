@@ -3,5 +3,5 @@ This code is designed to perform both classical (MD) or Path Integral Molecular 
 
 The structure of the program in Fortran modules was designed and implemented by Eduardo Hernández, in a similar way to the Trocadero software (R. Rurali, E. Hernández, Computational Materials Science 28 (2003) 85–106). The main program and the subroutines needed to implement the path integral method were written by Alfonso Gijón.
 
-The code is not currently maintained, but any question can be asked to Alfonso Gijón (alfonso.gijon2@gmail.com). If you download and use the code, please cite the PhD thesis of Alfonso Gijón (http://hdl.handle.net/10261/251865) 
+The code is not currently maintained, but any question can be asked to Alfonso Gijón (alfonso.gijon2@gmail.com). If you download and use the code for your work, please cite our [paper](https://doi.org/10.1039/D2CP01088G) 
 ---
