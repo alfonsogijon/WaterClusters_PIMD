@@ -5,3 +5,18 @@ The structure of the program in Fortran modules was designed and implemented by 
 
 The code is not currently maintained, but any question can be asked to Alfonso Gijón (alfonso.gijon2@gmail.com). If you download and use the code for your work, please cite our [paper](https://doi.org/10.1039/D2CP01088G) 
 ---
+
+```
+@Article{D2CP01088G,
+author ="Gijón, A. and Hernández, E. R.",
+title  ="Quantum simulations of neutral water clusters and singly-charged water cluster anions",
+journal  ="Phys. Chem. Chem. Phys.",
+year  ="2022",
+volume  ="24",
+issue  ="23",
+pages  ="14440-14451",
+publisher  ="The Royal Society of Chemistry",
+doi  ="10.1039/D2CP01088G",
+url  ="http://dx.doi.org/10.1039/D2CP01088G",
+abstract  ="We report a computational study of the structural and energetic properties of water clusters and singly-charged water cluster anions containing from 20 to 573 water molecules. We have used both a classical and a quantum description of the molecular degrees of freedom. Water intra and inter-molecular interactions have been modelled through the SPC/F model{,} while the water-excess electron interaction has been described via the well-known Turi–Borgis potential. We find that in general the quantum effects of the water degrees of freedom are small{,} but they do influence the cluster-size at which the excess electron stabilises inside the cluster{,} which occurs at smaller cluster sizes when quantum effects are taken into consideration."}
+```
