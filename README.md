@@ -9,7 +9,7 @@ The code is not currently maintained, but any question can be asked to Alfonso G
 ---
 
 ```
-@Article{Gijon2021,
+@Article{Gijon2022,
   author ="Gijón, A. and Hernández, E. R.",
   title  ="Quantum simulations of neutral water clusters and singly-charged water cluster anions",
   journal  ="Phys. Chem. Chem. Phys.",
