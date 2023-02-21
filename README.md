@@ -5,7 +5,7 @@ The structure of the program in Fortran modules was designed and implemented by 
 
 Once you have downloaded the repository in your computer, you need the *gfortran* compiler compile and run an example. First, type `make` to build the executable files. Then, go to the directory */examples/PIMD_Water* and type `../../PIMD_Water.x < input-PIMD.txt` to run a simulation of a cluster with *N*=100 water molecules at 50 Kelvin of temperature. The parameters of the simulation can be changed in the input file, where you must speficy the logfile, the goemetry file (in *.xyz* format), number of steps, number of replicas, friction parameter of the Langevin dynamics, target temperature and the time-step.
 
-The code is not currently maintained, but any question can be asked to Alfonso Gijón (alfonso.gijon2@gmail.com). If you download and use the code for your work, please cite this repository and our [paper](https://doi.org/10.1039/D2CP01088G): 
+The code is not currently maintained, but any question can be asked to Alfonso Gijón (alfonso.gijon2@gmail.com). If you download and use the code or it is useful for your work, please cite this repository and our [paper](https://doi.org/10.1039/D2CP01088G): 
 ---
 
 ```
